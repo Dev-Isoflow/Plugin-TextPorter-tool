@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:           #f7f7f7;
+            --surface:      #ffffff;
+            --border:       #e8e8e8;
+            --border-focus: #aaaaaa;
+            --text:         #111111;
+            --muted:        #888888;
+            --faint:        #bbbbbb;
+            --green:        #0d9f57;
+            --blue:         #1a73e8;
+            --blue-hover:   #1558b0;
+            --red-bg:       #fff1f1;
+            --red-text:     #c0392b;
+            --yellow-bg:    #fffbeb;
+            --yellow-text:  #92680c;
+            --info-bg:      #f0f6ff;
+            --info-text:    #1a56db;
+            --ok-bg:        #f0fdf6;
+            --ok-text:      #0a7d43;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 12px;
+            background: var(--bg);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Shell ── */
+        .plugin { display: flex; flex-direction: column; }
+
+        .header { padding: 14px 16px 12px; }
+
+        .header-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.3px;
+        }
+
+        /* ── Segmented tabs ── */
+        .tabs-wrap { padding: 0 16px 12px; }
+
+        .tabs {
+            display: flex;
+            background: var(--border);
+            border-radius: 9px;
+            padding: 3px;
+            gap: 2px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 6px 8px;
+            font-size: 11px;
+            font-weight: 500;
+            font-family: inherit;
+            color: var(--muted);
+            background: transparent;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            letter-spacing: -0.1px;
+        }
+        .tab:hover { color: var(--text); }
+        .tab.active {
+            background: var(--surface);
+            color: var(--text);
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 1px rgba(0,0,0,0.04);
+        }
+
+        /* ── Divider ── */
+        .divider { height: 1px; background: var(--border); }
+
+        /* ── Content ── */
+        .content {
+            padding: 14px 16px 16px;
+        }
+        .content::-webkit-scrollbar { width: 4px; }
+        .content::-webkit-scrollbar-track { background: transparent; }
+        .content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        .view { display: none; }
+        .view.active { display: flex; flex-direction: column; gap: 10px; }
+
+        /* ── Hint text ── */
+        .hint {
+            font-size: 11px;
+            line-height: 1.6;
+            color: var(--muted);
+        }
+
+        /* ── Input ── */
+        .input-field {
+            width: 100%;
+            padding: 9px 12px;
+            font-size: 12px;
+            font-family: inherit;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .input-field::placeholder { color: var(--faint); }
+        .input-field:focus { border-color: var(--border-focus); }
+
+        /* ── Buttons ── */
+        .btn {
+            width: 100%;
+            padding: 10px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: inherit;
+            border: none;
+            border-radius: 100px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            letter-spacing: -0.1px;
+        }
+
+        .btn-dark { background: var(--text); color: #fff; }
+        .btn-dark:hover:not(:disabled) { background: #333; }
+        .btn-dark:disabled { background: var(--border); color: var(--faint); cursor: not-allowed; }
+
+        .btn-blue { background: var(--blue); color: #fff; }
+        .btn-blue:hover:not(:disabled) { background: var(--blue-hover); }
+        .btn-blue:disabled { background: var(--border); color: var(--faint); cursor: not-allowed; }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 500;
+            padding: 6px;
+        }
+        .btn-ghost:hover { color: var(--text); }
+
+        /* ── Status banners ── */
+        .status {
+            display: none;
+            font-size: 11px;
+            line-height: 1.5;
+            padding: 8px 10px;
+            border-radius: 7px;
+        }
+        .status.visible      { display: block; }
+        .status-info         { background: var(--info-bg);    color: var(--info-text); }
+        .status-success      { background: var(--ok-bg);      color: var(--ok-text); }
+        .status-warning      { background: var(--yellow-bg);  color: var(--yellow-text); }
+        .status-error        { background: var(--red-bg);     color: var(--red-text); }
+
+
+        /* ── Project select ── */
+        .select-wrap {
+            position: relative;
+        }
+        .select-wrap::after {
+            content: '';
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0; height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 5px solid var(--muted);
+            pointer-events: none;
+        }
+        select.input-field {
+            appearance: none;
+            -webkit-appearance: none;
+            padding-right: 30px;
+            cursor: pointer;
+        }
+        select.input-field:disabled {
+            color: var(--faint);
+            cursor: default;
+        }
+
+        /* ── Custom toggle ── */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            user-select: none;
+            padding: 10px 12px;
+            border-radius: 9px;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            transition: border-color 0.15s;
+        }
+        .toggle-row:hover { border-color: var(--border-focus); }
+
+        .toggle-input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+            pointer-events: none;
+        }
+
+        .toggle-track {
+            flex-shrink: 0;
+            width: 28px;
+            height: 16px;
+            border-radius: 100px;
+            background: var(--border);
+            position: relative;
+            transition: background 0.2s ease;
+        }
+        .toggle-input:checked ~ .toggle-track { background: var(--text); }
+
+        .toggle-thumb {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            transition: transform 0.2s ease;
+        }
+        .toggle-input:checked ~ .toggle-track .toggle-thumb { transform: translateX(12px); }
+
+        .toggle-text { flex: 1; min-width: 0; }
+        .toggle-label { font-size: 11px; font-weight: 600; color: var(--text); }
+        .toggle-desc  { font-size: 10px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+        /* ── Progress steps ── */
+        .progress {
+            display: none;
+            flex-direction: column;
+            gap: 7px;
+            padding: 11px 13px;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 9px;
+        }
+        .progress.visible { display: flex; }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: var(--faint);
+            transition: color 0.2s;
+        }
+        .step.active { color: var(--text); font-weight: 500; }
+        .step.done   { color: var(--green); }
+
+        .step-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--border);
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+        .step.active .step-dot {
+            background: var(--text);
+            animation: pulse-dot 1s ease-in-out infinite;
+        }
+        .step.done .step-dot { background: var(--green); animation: none; }
+
+        @keyframes pulse-dot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50%       { transform: scale(1.5); opacity: 0.6; }
+        }
+
+        /* ── Celebration overlay ── */
+        #celebration-overlay {
+            position: fixed; inset: 0;
+            background: linear-gradient(140deg, #0f0c29, #302b63, #24243e);
+            z-index: 10000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+        }
+        #celebration-overlay.visible { display: flex; }
+
+        .cel-icon  { font-size: 52px; animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .cel-title { font-size: 22px; font-weight: 700; color: #fff; letter-spacing: -0.5px; animation: fadeUp 0.35s ease 0.1s both; }
+        .cel-sub   { font-size: 12px; color: rgba(255,255,255,0.55); animation: fadeUp 0.35s ease 0.2s both; }
+
+        @keyframes popIn {
+            from { transform: scale(0.4); opacity: 0; }
+            to   { transform: scale(1);   opacity: 1; }
+        }
+        @keyframes fadeUp {
+            from { transform: translateY(8px); opacity: 0; }
+            to   { transform: translateY(0);   opacity: 1; }
+        }
+
+        #confetti-canvas {
+            position: fixed; inset: 0;
+            pointer-events: none;
+            z-index: 10001;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="confetti-canvas"></canvas>
+
+    <div id="celebration-overlay">
+        <div class="cel-icon">🎉</div>
+        <div class="cel-title">Done</div>
+        <div class="cel-sub" id="celebration-message"></div>
+    </div>
+
+    <div class="plugin">
+        <div class="header">
+            <div class="header-title">Copy Wizard</div>
+        </div>
+
+        <div class="tabs-wrap">
+            <div class="tabs">
+                <button class="tab active" id="export-tab">Export</button>
+                <button class="tab" id="import-tab">Import</button>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="content">
+
+            <!-- EXPORT VIEW -->
+            <div class="view active" id="export-view">
+
+                <p class="hint">Select frames in Figma to export copy and frame images to Copy Wizard.</p>
+
+                <div class="select-wrap" id="project-selector-wrap" style="display:none">
+                    <select class="input-field" id="project-select">
+                        <option value="">No project</option>
+                    </select>
+                </div>
+
+                <div class="progress" id="export-progress">
+                    <div class="step" id="step-collect"><div class="step-dot"></div>Collecting text layers</div>
+                    <div class="step" id="step-upload"><div class="step-dot"></div>Uploading frame images</div>
+                    <div class="step" id="step-save"><div class="step-dot"></div>Saving to Firestore</div>
+                </div>
+
+<div class="status" id="export-status"></div>
+
+                <label class="toggle-row" for="export-linked-toggle">
+                    <input type="checkbox" class="toggle-input" id="export-linked-toggle">
+                    <div class="toggle-track"><div class="toggle-thumb"></div></div>
+                    <div class="toggle-text">
+                        <div class="toggle-label">Linked Mode</div>
+                        <div class="toggle-desc">Detect and store link groups for screens that share the same copy</div>
+                    </div>
+                </label>
+
+                <button class="btn btn-dark" id="export-button">Export to Copy Wizard</button>
+
+            </div>
+
+            <!-- IMPORT VIEW -->
+            <div class="view" id="import-view">
+
+                <input class="input-field" type="text" id="export-id-input" placeholder="Paste Export ID…">
+
+                <label class="toggle-row" for="linked-mode-toggle">
+                    <input type="checkbox" class="toggle-input" id="linked-mode-toggle">
+                    <div class="toggle-track"><div class="toggle-thumb"></div></div>
+                    <div class="toggle-text">
+                        <div class="toggle-label">Linked Mode</div>
+                        <div class="toggle-desc">Propagate copy changes to all screens that share the same original text</div>
+                    </div>
+                </label>
+
+                <div class="status" id="import-status"></div>
+
+                <button class="btn btn-blue" id="import-button">Import from Copy Wizard</button>
+
+                <button class="btn btn-ghost" id="close-plugin">Close</button>
+
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        // ─── Firebase config ──────────────────────────────────────────────
+        var PROJECT_ID = 'iso-copy-wizard';
+        var STORAGE_BUCKET = 'iso-copy-wizard.firebasestorage.app';
+
+        // ─── Firestore typed-value helpers ───────────────────────────────
+        function wrapValue(val) {
+            if (val === null || val === undefined) return { nullValue: null };
+            if (typeof val === 'boolean') return { booleanValue: val };
+            if (typeof val === 'string') return { stringValue: val };
+            if (Number.isInteger(val)) return { integerValue: String(val) };
+            if (typeof val === 'number') return { doubleValue: val };
+            if (Array.isArray(val)) return { arrayValue: { values: val.map(wrapValue) } };
+            if (typeof val === 'object') {
+                var fields = {};
+                Object.keys(val).forEach(function (k) { fields[k] = wrapValue(val[k]); });
+                return { mapValue: { fields: fields } };
+            }
+            return { stringValue: String(val) };
+        }
+
+        function buildDoc(obj) {
+            var fields = {};
+            Object.keys(obj).forEach(function (k) { fields[k] = wrapValue(obj[k]); });
+            return { fields: fields };
+        }
+
+        function unwrapValue(v) {
+            if ('stringValue' in v) return v.stringValue;
+            if ('integerValue' in v) return parseInt(v.integerValue, 10);
+            if ('doubleValue' in v) return v.doubleValue;
+            if ('booleanValue' in v) return v.booleanValue;
+            if ('nullValue' in v) return null;
+            if ('arrayValue' in v) return (v.arrayValue.values || []).map(unwrapValue);
+            if ('mapValue' in v) {
+                var obj = {};
+                Object.keys(v.mapValue.fields || {}).forEach(function (k) {
+                    obj[k] = unwrapValue(v.mapValue.fields[k]);
+                });
+                return obj;
+            }
+            return null;
+        }
+
+        function unwrapDoc(doc) {
+            var obj = {};
+            Object.keys(doc.fields || {}).forEach(function (k) {
+                obj[k] = unwrapValue(doc.fields[k]);
+            });
+            return obj;
+        }
+
+        // ─── Firebase REST calls ──────────────────────────────────────────
+        function base64ToBytes(b64) {
+            var bin = atob(b64);
+            var bytes = new Uint8Array(bin.length);
+            for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            return bytes;
+        }
+
+        async function uploadImage(timestamp, frameId, base64) {
+            var path = 'exports/' + timestamp + '/' + encodeURIComponent(frameId) + '.png';
+            var encodedPath = encodeURIComponent(path);
+            var url = 'https://firebasestorage.googleapis.com/v0/b/' + STORAGE_BUCKET +
+                '/o?uploadType=media&name=' + encodedPath;
+            var res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'image/png' },
+                body: base64ToBytes(base64)
+            });
+            if (!res.ok) throw new Error('Image upload failed (' + res.status + ')');
+            var json = await res.json();
+            return 'https://firebasestorage.googleapis.com/v0/b/' + STORAGE_BUCKET +
+                '/o/' + encodedPath + '?alt=media&token=' + json.downloadTokens;
+        }
+
+        async function createDoc(collection, data) {
+            var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID +
+                '/databases/(default)/documents/' + collection;
+            var res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(buildDoc(data))
+            });
+            if (!res.ok) throw new Error('Firestore create failed (' + res.status + ')');
+            var json = await res.json();
+            var parts = json.name.split('/');
+            return parts[parts.length - 1];
+        }
+
+        async function getDoc(collection, docId) {
+            var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID +
+                '/databases/(default)/documents/' + collection + '/' + docId;
+            var res = await fetch(url);
+            if (!res.ok) throw new Error('Firestore read failed (' + res.status + ')');
+            return unwrapDoc(await res.json());
+        }
+
+        async function patchField(collection, docId, field, value) {
+            var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID +
+                '/databases/(default)/documents/' + collection + '/' + docId +
+                '?updateMask.fieldPaths=' + field;
+            var body = {};
+            body[field] = value;
+            var res = await fetch(url, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(buildDoc(body))
+            });
+            if (!res.ok) throw new Error('Firestore patch failed (' + res.status + ')');
+        }
+
+        // ─── UI helpers ───────────────────────────────────────────────────
+        function showStatus(id, msg, type) {
+            var el = document.getElementById(id);
+            el.className = 'status visible status-' + type;
+            el.textContent = msg;
+        }
+        function hideStatus(id) {
+            document.getElementById(id).classList.remove('visible');
+        }
+
+        function setStep(stepId, state) {
+            var el = document.getElementById(stepId);
+            el.className = 'step' + (state === 'active' ? ' active' : state === 'done' ? ' done' : '');
+        }
+
+        function showCelebration(count) {
+            document.getElementById('celebration-message').textContent =
+                'Updated ' + count + ' text layer' + (count !== 1 ? 's' : '') + ' in Figma';
+            document.getElementById('celebration-overlay').classList.add('visible');
+            createConfetti();
+            setTimeout(function () {
+                parent.postMessage({ pluginMessage: { type: 'close' } }, '*');
+            }, 2500);
+        }
+
+        function createConfetti() {
+            var canvas = document.getElementById('confetti-canvas');
+            var ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            canvas.style.display = 'block';
+            var pieces = [];
+            var colors = ['#ffffff', '#ffd700', '#ff69b4', '#00ffff', '#98fb98'];
+            for (var i = 0; i < 150; i++) {
+                pieces.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    w: Math.random() * 10 + 5, h: Math.random() * 5 + 5,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rotation: Math.random() * 360, rotationSpeed: Math.random() * 10 - 5,
+                    speedX: Math.random() * 3 - 1.5, speedY: Math.random() * 3 + 2, gravity: 0.1
+                });
+            }
+            (function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                var still = false;
+                pieces.forEach(function (p) {
+                    p.speedY += p.gravity; p.x += p.speedX; p.y += p.speedY; p.rotation += p.rotationSpeed;
+                    if (p.y < canvas.height + 20) still = true;
+                    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rotation * Math.PI / 180);
+                    ctx.fillStyle = p.color; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore();
+                });
+                if (still) requestAnimationFrame(animate); else canvas.style.display = 'none';
+            })();
+        }
+
+        // ─── Load projects ────────────────────────────────────────────────
+        // NOTE: requires `allow read: true` on the projects collection in
+        // Firestore security rules — the plugin runs unauthenticated.
+        async function loadProjects() {
+            try {
+                var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID +
+                    '/databases/(default)/documents/projects';
+                var res = await fetch(url);
+                if (!res.ok) return; // auth not set up yet — silently skip
+                var json = await res.json();
+                var docs = json.documents || [];
+                if (docs.length === 0) return;
+
+                var select = document.getElementById('project-select');
+                docs.forEach(function (doc) {
+                    var data = unwrapDoc(doc);
+                    var parts = doc.name.split('/');
+                    var id = parts[parts.length - 1];
+                    var option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = data.name || id;
+                    select.appendChild(option);
+                });
+
+                document.getElementById('project-selector-wrap').style.display = 'block';
+            } catch (e) {
+                // network error or rules blocked — silently skip
+            }
+        }
+
+        loadProjects();
+
+        // ─── Tabs ─────────────────────────────────────────────────────────
+        document.getElementById('export-tab').addEventListener('click', function () {
+            document.getElementById('export-tab').classList.add('active');
+            document.getElementById('import-tab').classList.remove('active');
+            document.getElementById('export-view').classList.add('active');
+            document.getElementById('import-view').classList.remove('active');
+        });
+        document.getElementById('import-tab').addEventListener('click', function () {
+            document.getElementById('import-tab').classList.add('active');
+            document.getElementById('export-tab').classList.remove('active');
+            document.getElementById('import-view').classList.add('active');
+            document.getElementById('export-view').classList.remove('active');
+        });
+
+        document.getElementById('close-plugin').addEventListener('click', function () {
+            parent.postMessage({ pluginMessage: { type: 'close' } }, '*');
+        });
+
+        // ─── Export button ────────────────────────────────────────────────
+        document.getElementById('export-button').addEventListener('click', function () {
+            document.getElementById('export-button').disabled = true;
+            hideStatus('export-status');
+            document.getElementById('export-progress').classList.add('visible');
+            setStep('step-collect', 'active');
+            setStep('step-upload', '');
+            setStep('step-save', '');
+            var linkedMode = document.getElementById('export-linked-toggle').checked;
+            parent.postMessage({ pluginMessage: { type: 'export-text', linkedMode: linkedMode } }, '*');
+        });
+
+        // ─── Import button ────────────────────────────────────────────────
+        var pendingImportExportId = null;
+
+        document.getElementById('import-button').addEventListener('click', async function () {
+            var exportId = document.getElementById('export-id-input').value.trim();
+            if (!exportId) {
+                showStatus('import-status', 'Please enter an Export ID.', 'error');
+                return;
+            }
+
+            document.getElementById('import-button').disabled = true;
+            showStatus('import-status', 'Fetching export from Firestore…', 'info');
+
+            try {
+                var doc = await getDoc('exports', exportId);
+
+                if (!doc || !doc.textNodes || doc.textNodes.length === 0) {
+                    showStatus('import-status', 'No text nodes found for this Export ID.', 'warning');
+                    document.getElementById('import-button').disabled = false;
+                    return;
+                }
+
+                var linkedMode = document.getElementById('linked-mode-toggle').checked;
+                var importData;
+
+                if (linkedMode) {
+                    var groupUpdates = {};
+                    doc.textNodes.forEach(function (n) {
+                        if (n.linkGroupId && n.currentText !== n.originalText) {
+                            groupUpdates[n.linkGroupId] = n.currentText;
+                        }
+                    });
+                    importData = doc.textNodes.map(function (n) {
+                        var newText = n.currentText;
+                        if (n.linkGroupId && groupUpdates[n.linkGroupId] !== undefined) {
+                            newText = groupUpdates[n.linkGroupId];
+                        }
+                        return { id: n.id, newText: newText };
+                    });
+                } else {
+                    importData = doc.textNodes.map(function (n) {
+                        return { id: n.id, newText: n.currentText };
+                    });
+                }
+
+                pendingImportExportId = exportId;
+                showStatus('import-status', 'Updating ' + importData.length + ' text layers…', 'info');
+                parent.postMessage({ pluginMessage: { type: 'import-text', data: importData } }, '*');
+
+            } catch (e) {
+                showStatus('import-status', 'Error: ' + e.message, 'error');
+                document.getElementById('import-button').disabled = false;
+            }
+        });
+
+        // ─── Messages from code.js ────────────────────────────────────────
+        window.onmessage = async function (event) {
+            var msg = event.data.pluginMessage;
+            if (!msg) return;
+
+            if (msg.type === 'firebase-export') {
+                setStep('step-collect', 'done');
+                setStep('step-upload', 'active');
+
+                try {
+                    var framesWithUrls = [];
+                    for (var i = 0; i < msg.frames.length; i++) {
+                        var frame = msg.frames[i];
+                        var imageUrl = await uploadImage(msg.timestamp, frame.id, frame.base64);
+                        framesWithUrls.push({ id: frame.id, name: frame.name, imageUrl: imageUrl });
+                    }
+
+                    setStep('step-upload', 'done');
+                    setStep('step-save', 'active');
+
+                    var selectedProject = document.getElementById('project-select').value;
+                    var exportDoc = {
+                        timestamp: msg.timestamp,
+                        figmaTimestamp: msg.figmaTimestamp,
+                        status: 'in-review',
+                        frameCount: msg.frameCount,
+                        textCount: msg.textCount,
+                        projectId: selectedProject || null,
+                        flowId: null,
+                        frames: framesWithUrls,
+                        textNodes: msg.textNodes
+                    };
+
+                    var exportId = await createDoc('exports', exportDoc);
+
+                    setStep('step-save', 'done');
+                    document.getElementById('export-progress').classList.remove('visible');
+
+                    var linkNote = msg.linkGroupCount > 0
+                        ? ' Found ' + msg.linkGroupCount + ' linked group' + (msg.linkGroupCount !== 1 ? 's' : '') + '.'
+                        : '';
+                    showStatus('export-status',
+                        'Exported ' + msg.textCount + ' text layers across ' + msg.frameCount + ' frames.' + linkNote,
+                        'success');
+
+                } catch (e) {
+                    document.getElementById('export-progress').classList.remove('visible');
+                    showStatus('export-status', 'Export failed: ' + e.message, 'error');
+                }
+
+                document.getElementById('export-button').disabled = false;
+
+            } else if (msg.type === 'import-result') {
+                document.getElementById('import-button').disabled = false;
+
+                if (msg.success) {
+                    document.getElementById('export-id-input').value = '';
+                    hideStatus('import-status');
+
+                    if (pendingImportExportId) {
+                        try {
+                            await patchField('exports', pendingImportExportId, 'status', 'imported');
+                        } catch (e) {
+                            console.warn('Failed to update status:', e);
+                        }
+                        pendingImportExportId = null;
+                    }
+                    showCelebration(msg.count);
+                } else {
+                    showStatus('import-status', 'Import failed: ' + msg.error, 'error');
+                }
+
+            } else if (msg.type === 'error') {
+                var isImport = document.getElementById('import-view').classList.contains('active');
+                showStatus(isImport ? 'import-status' : 'export-status', 'Error: ' + msg.message, 'error');
+                document.getElementById('export-button').disabled = false;
+                document.getElementById('export-progress').classList.remove('visible');
+                if (isImport) document.getElementById('import-button').disabled = false;
+            }
+        };
+        // ─── Auto-resize window to fit content ───────────────────────────
+        var plugin = document.querySelector('.plugin');
+        function sendResize() {
+            parent.postMessage({ pluginMessage: { type: 'resize', height: plugin.offsetHeight } }, '*');
+        }
+        new ResizeObserver(sendResize).observe(plugin);
+        sendResize();
+
+    })();
+    </script>
+</body>
+</html>
